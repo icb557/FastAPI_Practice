@@ -1,0 +1,62 @@
+services:
+  # PostgreSQL Database Service
+  db:
+    image: dhi.io/postgres:17-alpine3.22-dev
+    container_name: notetaker-db-dev
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - notetaker-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Service (FastAPI)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    image: notetaker-api:dev
+    container_name: notetaker-api-dev
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_NAME: ${APP_NAME:-Notetaker API}
+      DEBUG: ${DEBUG:-true}
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/.venv    # Hide the host's .venv from the container
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - notetaker-network
+    command: ["run", "sh", "-c", "alembic upgrade head && fastapi dev --host 0.0.0.0 --port 8000"]
+
+# Named volume for database persistence
+volumes:
+  pgdata:
+    name: notetaker-pgdata
+
+# Network for service communication
+networks:
+  notetaker-network:
+    driver: bridge

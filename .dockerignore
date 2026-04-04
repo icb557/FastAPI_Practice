@@ -1,0 +1,15 @@
+# Ignore all files
+**
+
+# Allow only essential files
+!app/
+!migrations/
+!alembic.ini
+!pyproject.toml
+!uv.lock
+!scripts/
+
+# Re-exclude cache dirs inside the allowed folders
+**/__pycache__
+**/*.pyc
+**/*.pyo

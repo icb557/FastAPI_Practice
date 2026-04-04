@@ -1,0 +1,20 @@
+services:
+  # Production database
+  db:
+    image: dhi.io/postgres:17-alpine3.22
+    container_name: notetaker-db
+
+  # Production API — multi-stage prod target, no source mount, no hot-reload
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    image: notetaker-api:prod
+    container_name: notetaker-api
+    environment:
+      DEBUG: "false"
+    volumes:
+      - /app         # replace dev source-code mount with an anonymous volume containing image contents (alternative: 'volumes: !reset []', this uses the native docker compose (v2) valid solution, however, the IDE linter would not like it and mark it as a syntax error)
+    # Override the dev command from the base compose file so it doesn't run start.py twice
+    command: ["python", "-m", "fastapi", "run", "--port", "8000"]
